@@ -1,0 +1,420 @@
+<meta charset="utf-8" />
+<title>Unicode: 挑战•应对•进化</title>
+<link
+  rel="stylesheet"
+  href="https://cdn.staticfile.org/reveal.js/4.1.0/reveal.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.staticfile.org/reveal.js/4.1.0/theme/black.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.staticfile.org/reveal.js/4.1.0/plugin/highlight/monokai.css"
+/>
+<style>
+  * {
+    text-transform: none !important;
+  }
+
+  .secondary {
+    color: darkcyan;
+    font-size: 0.5em;
+  }
+
+  ul,
+  ol {
+    margin-left: 0 !important;
+  }
+</style>
+
+<body class="reveal">
+  <section class="slides">
+    <section>
+      <h1>Unicode</h1>
+      <h2>挑战 • 应对 • 进化</h2>
+    </section>
+    <section>
+      <section>
+        <ul>
+          <li class="fragment">
+            1.0<span class="secondary">(1991.1)</span>: 24 种文字, 7,161 个字符
+          </li>
+          <li class="fragment">
+            1.0.1<span class="secondary">(1992.6)</span>: 添加 CJK，28,327
+            个字符
+          </li>
+          <li class="fragment">
+            5.1<span class="secondary">(2008.4)</span>: 超过 100,000
+            字符（100,713）
+          </li>
+          <li class="fragment">
+            6.0<span class="secondary">(2010.10)</span>: 首次收录 582 个 Emoji👋🏼
+          </li>
+          <li class="fragment">
+            14.0<span class="secondary">(2021.9)</span>: 159 种文字, 144,697
+            个字符
+          </li>
+        </ul>
+        <aside class="notes" data-markdown>
+          + 1991 年，负责 ISO/IEC 10646 （JTC 1/SC 2/WG 2） 的 ISO 工作组和
+          Unicode 联盟决定创建一个通用标准来编码多语言文本。从那时起，ISO
+          10646工作组（SC 2 / WG
+          2）和Unicode联盟密切合作，以扩展标准并保持各自版本的同步。 + Unicode
+          中奇怪的东西：日本年号合字（12.1 2019年5月 令和），biang 字（13.0
+          2020年3月），甲骨文、金文、小篆（计划中）
+        </aside>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>挑战 1</h2>
+        <p>要把全人类的文字编码，总共分几步？</p>
+      </section>
+      <section data-auto-animate>
+        <h2>Unicode 编码模型</h2>
+      </section>
+      <section data-auto-animate>
+        <h2>Unicode 编码模型</h2>
+        <ol>
+          <li>ACR: Abstract Character Repertoire</li>
+          <li>CCS: Coded Character Set</li>
+          <li>CEF: Character Encoding Form</li>
+          <li>CES: Character Encoding Scheme</li>
+          <li>TES: Transfer Encoding Syntax</li>
+        </ol>
+      </section>
+      <section>
+        <h2>Abstract Character Repertoire (ACR)</h2>
+        <h2>抽象字符表</h2>
+        <p>定义了所有需要被编码的字符的集合。</p>
+        <pre
+          class="fragment"
+          style="text-align: center"
+          data-fragment-index="0"
+        >
+A, B, C, ……</pre
+        >
+      </section>
+      <section>
+        <h2>Coded Character Set (CCS)</h2>
+        <h2>编码字符集</h2>
+        <p>
+          定义了 ACR 中的字符如何映射到码位（code point），码位是一个非负整数。
+        </p>
+        <pre
+          class="fragment"
+          style="text-align: center"
+          data-fragment-index="0"
+        >
+A ➞ 65, B ➞ 66, C ➞ 67, ……</pre
+        >
+      </section>
+      <section>
+        <h2>Character Encoding Form (CEF)</h2>
+        <h2>字符编码表</h2>
+        <p>将码位映射为字节序列，例如：UTF-8、UTF-16。</p>
+        <pre
+          class="fragment"
+          style="text-align: center"
+          data-fragment-index="0"
+        >
+65 ➞ 0x0041, 66 ➞ 0x0042, 67 ➞ 0x0043, ……</pre
+        >
+      </section>
+      <section>
+        <h2>Character Encoding Scheme (CES)</h2>
+        <h2>字符编码方案</h2>
+        <p>
+          将字节序列调整为跨平台兼容的形式（主要是定义字节序）。例如 Unicode 3.0
+          支持 3 个 CES：UTF-8、UTF-16BE、UTF-16LE。
+        </p>
+        <pre
+          class="fragment"
+          style="text-align: center"
+          data-fragment-index="0"
+        >
+0x0041 ➞ 0x4100, 0x0042 ➞ 0x4200, 0x0043 ➞ 0x4300, ……</pre
+        >
+      </section>
+      <section>
+        <h2>Transfer Encoding Syntax (TES)</h2>
+        <h2>传输编码语法</h2>
+        <p>用于传输的可双向转化的数据编码方式，比如 gzip、base64。</p>
+      </section>
+      <section>
+        <p>如何给超过 14 万个字符编排码位？</p>
+      </section>
+      <section>
+        <h2>Unicode 字符平面映射</h2>
+        <p class="fragment" data-fragment-index="0">
+          Unicode 字符分为 17 组（编号 0 -
+          16）编排，每组称为平面（Plane），而每平面拥有 65536（即
+          2<sup>16</sup>）个代码点。
+        </p>
+        <aside class="notes" data-markdown>1,114,112 个字符</aside>
+      </section>
+      <section>
+        <table class="r-stretch">
+          <thead>
+            <tr>
+              <th>平面</th>
+              <th>始末字符值</th>
+              <th>中文名称</th>
+              <th>英文名称</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>0号平面</td>
+              <td>U+0000 - U+FFFF</td>
+              <td><b>基本多文种平面</b></td>
+              <td>Basic Multilingual Plane，简称<b>BMP</b></td>
+            </tr>
+            <tr>
+              <td>1号平面</td>
+              <td>U+10000 - U+1FFFF</td>
+              <td><b>多文种补充平面</b></td>
+              <td>Supplementary Multilingual Plane，简称<b>SMP</b></td>
+            </tr>
+            <tr>
+              <td>2号平面</td>
+              <td>U+20000 - U+2FFFF</td>
+              <td><b>表意文字补充平面</b></td>
+              <td>Supplementary Ideographic Plane，简称<b>SIP</b></td>
+            </tr>
+            <tr>
+              <td>3号平面</td>
+              <td>U+30000 - U+3FFFF</td>
+              <td><b>表意文字第三平面</b></td>
+              <td>Tertiary Ideographic Plane，简称<b>TIP</b></td>
+            </tr>
+            <tr>
+              <td>4号平面<br />至<br />13号平面</td>
+              <td>U+40000 - U+DFFFF</td>
+              <td>（尚未使用）</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>14号平面</td>
+              <td>U+E0000 - U+EFFFF</td>
+              <td><b>特别用途补充平面</b></td>
+              <td>Supplementary Special-purpose Plane，简称<b>SSP</b></td>
+            </tr>
+            <tr>
+              <td>15号平面</td>
+              <td>U+F0000 - U+FFFFF</td>
+              <td>保留作为<b>私人使用区（A区）</b></td>
+              <td>Private Use Area-A，简称<b>PUA-A</b></td>
+            </tr>
+            <tr>
+              <td>16号平面</td>
+              <td>U+100000 - U+10FFFF</td>
+              <td>保留作为<b>私人使用区（B区）</b></td>
+              <td>Private Use Area-B，简称<b>PUA-B</b></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section data-auto-animate>
+        <div style="position: relative">
+          <img src="/usr/uploads/unicode/heatmap-wiki+tweets.png" />
+        </div>
+      </section>
+      <section data-auto-animate>
+        <div style="position: relative; left: -80px; width: 1400px">
+          <img src="/usr/uploads/unicode/heatmap-wiki+tweets.png" />
+          <img
+            style="position: absolute; top: 14px; left: 480px; width: 636px"
+            src="/usr/uploads/unicode/bmp.svg"
+          />
+        </div>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>挑战 2</h2>
+        <p>看起来一样就是同一个字符吗？</p>
+      </section>
+      <section data-auto-animate>
+        <p style="font-size: 3em">café</p>
+      </section>
+      <section data-auto-animate>
+        <p style="font-size: 3em">café</p>
+        <p>v.s.</p>
+        <p style="font-size: 3em">café</p>
+      </section>
+      <section style="font-size: 2em">
+        é<span class="secondary">(U+00E9)</span> = e<span class="secondary"
+          >(U+0065)</span
+        >
+        + ́<span class="secondary">(U+0341)</span>
+      </section>
+      <section>
+        <h2>Unicode 等价性</h2>
+        <p>
+          Unicode
+          中某些字符或字符序列在功能上与其它字符或字符序列相同，则它们是等价的。
+        </p>
+      </section>
+      <section>
+        <h2>等价形式</h2>
+        <ul>
+          <li class="fragment" data-fragment-index="0">标准等价：é ↔︎ é</li>
+          <li class="fragment" data-fragment-index="1">兼容等价：1 ↔︎ ①</li>
+        </ul>
+      </section>
+      <section>
+        <p>如何判断两个字符序列相等？</p>
+      </section>
+      <section>
+        <h2>Unicode 正规化</h2>
+        <p>将彼此等价的序列转成统一序列。</p>
+      </section>
+      <section>
+        <h2>正规形式</h2>
+        <ul>
+          <li class="fragment" data-fragment-index="0">
+            完全合成：将组合字符合成为预组字符，可以理解为用最少的码位表示字符序列。
+          </li>
+          <li class="fragment" data-fragment-index="1">
+            完全分解：将预组字符拆分为组合字符，可以理解为用最多的码位表示字符序列。
+          </li>
+        </ul>
+      </section>
+      <section>
+        <ul>
+          <li class="fragment" data-fragment-index="0">
+            NFC: 标准等价合成形式
+          </li>
+          <li class="fragment" data-fragment-index="1">
+            NFD: 标准等价分解形式
+          </li>
+          <li class="fragment" data-fragment-index="2">
+            NFKC: 兼容等价合成形式
+          </li>
+          <li class="fragment" data-fragment-index="3">
+            NFKD: 兼容等价分解形式
+          </li>
+        </ul>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>挑战 3</h2>
+        <p>同样的字符看起来一定一样吗？</p>
+      </section>
+      <section data-auto-animate>
+        <p class="fragment" lang="zh-CN">房直次</p>
+        <p class="fragment" lang="zh-TW">房直次</p>
+        <p class="fragment" lang="ja">房直次</p>
+        <p class="fragment" lang="ko">房直次</p>
+      </section>
+      <section data-auto-animate>
+        <code class="secondary">lang="zh-CN"</code>
+        <p lang="zh-CN">房直次</p>
+        <code class="secondary">lang="zh-TW"</code>
+        <p lang="zh-TW">房直次</p>
+        <code class="secondary">lang="ja"</code>
+        <p lang="ja">房直次</p>
+        <code class="secondary">lang="ko"</code>
+        <p lang="ko">房直次</p>
+      </section>
+      <section>
+        <h2>异体字</h2>
+        <p class="fragment">指读音、意思相同，但字形不同的汉字。</p>
+      </section>
+      <section>
+        <h3>表意文字认同原则</h3>
+        <p>
+          Unicode「编码字符（Character），而不编码字形（Glyph）」，会把同一字符的不同字形（即异体字）合并。
+        </p>
+      </section>
+      <section>
+        <h3>原字集分离原则</h3>
+        <p>
+          若在任意 Unicode 收录来源中同时收录了一个字符的多种字形，则 Unicode
+          也同时收录这些字形。如「剣」<span class="secondary">(U+5263)</span
+          >与「劍」<span class="secondary">(U+528D)</span>。
+        </p>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>挑战 4</h2>
+        <p>如何让 Emoji 「政治正确」？</p>
+      </section>
+      <section>
+        <h1>👨‍👩‍👧‍👦</h1>
+        <h1 class="fragment">👩‍👩‍👧‍👦👨‍👨‍👧‍👦</h1>
+      </section>
+      <section>
+        <h1>🎅🏻</h1>
+        <h1 class="fragment">🤶🏿</h1>
+      </section>
+      <section>
+        <h1>🤰</h1>
+        <h1 class="fragment">🫃</h1>
+      </section>
+      <section>
+        <h2>组合与修饰符</h2>
+      </section>
+      <section>
+        <p>
+          使用 [ZWJ](零宽连字符，U+200D) 连接若干个 Emoji 字符组成新的 Emoji。
+        </p>
+        <ul>
+          <li class="fragment">家庭：👨 + [ZWJ] + 👩 + [ZWJ] + 👦 = 👨‍👩‍👦</li>
+          <li class="fragment">职业：🧑 + [ZWJ] + 💻 = 🧑‍💻</li>
+          <li class="fragment">发型：🧑 + [ZWJ] + 🦳 = 🧑‍🦳</li>
+        </ul>
+      </section>
+      <section>
+        <ul>
+          <li>🏻 (U+1F3FB)</li>
+          <li>🏼 (U+1F3FC)</li>
+          <li>🏽 (U+1F3FD)</li>
+          <li>🏾 (U+1F3FE)</li>
+          <li>🏿 (U+1F3FF)</li>
+        </ul>
+      </section>
+      <section>
+        <p>🎅</p>
+        <p>+</p>
+        <p>🏿</p>
+        <p>=</p>
+        <p>🎅🏿</p>
+      </section>
+    </section>
+    <section>
+      <h2>References</h2>
+      <ol style="font-size: 0.2em">
+        <li>https://www.unicode.org/reports/tr17/tr17-3.html</li>
+        <li>
+          https://zh.wikipedia.org/wiki/Unicode%E5%AD%97%E7%AC%A6%E5%B9%B3%E9%9D%A2%E6%98%A0%E5%B0%84
+        </li>
+        <li>https://www.reedbeta.com/blog/programmers-intro-to-unicode/</li>
+        <li>
+          https://zh.wikipedia.org/wiki/Unicode%E7%AD%89%E5%83%B9%E6%80%A7
+        </li>
+        <li>https://unicode.org/emoji/charts/full-emoji-list.html</li>
+      </ol>
+    </section>
+  </section>
+</body>
+
+<script type="module">
+  import Reveal from "https://cdn.staticfile.org/reveal.js/4.3.1/reveal.esm.min.js";
+  import Markdown from "https://cdn.staticfile.org/reveal.js/4.3.1/plugin/markdown/markdown.esm.min.js";
+  import Highlight from "https://cdn.staticfile.org/reveal.js/4.3.1/plugin/highlight/highlight.esm.min.js";
+  import Notes from "https://cdn.staticfile.org/reveal.js/4.3.1/plugin/notes/notes.esm.min.js";
+
+  new Reveal({
+    controls: false,
+    hash: true,
+    hashOneBasedIndex: true,
+    navigationMode: "linear",
+    plugins: [Markdown, Highlight, Notes],
+    slideNumber: "c/t",
+  }).initialize();
+</script>

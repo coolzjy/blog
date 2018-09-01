@@ -1,0 +1,307 @@
+<meta charset="utf-8" />
+<title>字符计数</title>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reset.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/theme/black.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/monokai.min.css"
+/>
+<style>
+  :root {
+    --r-heading-text-transform: none;
+  }
+</style>
+
+<body class="reveal">
+  <section class="slides">
+    <section>
+      <h1>字符计数</h1>
+      <p>前端工程师需要了解的 Unicode 知识</p>
+    </section>
+    <section>
+      <h2>不超过 20 个字符</h2>
+      <code class="fragment" data-fragment-index="0">str.length <= 20</code>
+    </section>
+    <section>
+      <section>
+        <code>"😂".length</code>
+      </section>
+      <section>
+        <h2><code>String.prototype.length</code> 是如何定义的？</h2>
+      </section>
+      <section>
+        <div class="fragment" data-fragment-index="0">
+          <q>
+            The String type is the set of all ordered sequences of zero or more
+            16-bit unsigned integer values (“elements”) up to a maximum length
+            of 2<sup>53</sup> - 1 elements.
+          </q>
+          <p style="text-align: right">
+            <a
+              href="https://262.ecma-international.org/11.0/#sec-ecmascript-language-types-string-type"
+              >——6.1.4 The String Type</a
+            >
+          </p>
+        </div>
+        <div class="fragment" data-fragment-index="1">
+          <q>
+            The number of elements in the String value represented by this
+            String object.
+          </q>
+          <p style="text-align: right">
+            <a
+              href="https://262.ecma-international.org/11.0/#sec-properties-of-string-instances-length"
+              >——21.1.4.1 length</a
+            >
+          </p>
+        </div>
+      </section>
+      <section>
+        <p><code>length</code> 属性表示 16bit 单元的个数</p>
+      </section>
+      <section>
+        <p>为什么有些字符占用 16bit</p>
+        <p>而有些字符占用 32bit</p>
+      </section>
+      <section>
+        <p>UTF-16 编码与代理对</p>
+      </section>
+      <section>
+        <p>
+          Unicode 目前共定义了 0x10FFFF 个码点。其中 0x0000 - 0xFFFF
+          收录了各国语言中最常用的文字和符号，称为<em>基本多语种平面</em>。
+        </p>
+        <p>
+          0x010000 - 0x10FFFF
+          称为<em>扩展平面</em>，用来收录使用频率较低的字符。
+        </p>
+        <a
+          href="https://zh.wikipedia.org/wiki/Unicode%E5%AD%97%E7%AC%A6%E5%B9%B3%E9%9D%A2%E6%98%A0%E5%B0%84"
+          >Unicode字符平面映射</a
+        >
+      </section>
+      <section>
+        <p>
+          UTF-16 是一种变长编码。对于基本多语种平面内的码点使用 16
+          位表示，而对于扩展平面内的码点则需要通过<em>代理对</em>技术使用 32
+          位来表示。
+        </p>
+      </section>
+      <section>
+        <p>
+          代理对技术是使用基本多文种平面中预留的 2048 个码位（0xD800 -
+          0xDFFF），通过 2 个 16bit 位置来表示一个位于扩展平面中字符的技术。
+        </p>
+        <p>
+          2048 个码位中 0xD800 - 0xDBFF 表示<a
+            href="https://unicode-table.com/cn/blocks/high-surrogates/"
+            >代理对高位</a
+          >，0xDC00 - 0xDFFF 表示<a
+            href="https://unicode-table.com/cn/blocks/low-surrogates/"
+            >代理对低位</a
+          >
+        </p>
+      </section>
+      <section>
+        <p>转换规则</p>
+        <pre class="fragment" data-fragment-index="0"><code data-trim>
+          // 码点转代理对
+          高位 = Math.floor((码点 - 0x010000) / 1024) + 0xD800
+          低位 = (码点 - 0x010000) % 1024 + 0xDC00
+        </code></pre>
+        <pre class="fragment" data-fragment-index="1"><code data-trim>
+          // 代理对转码点
+          码点 = (高位 - 0xD800) * 1024 + (低位 - 0xDC00) + 0x010000
+        </code></pre>
+      </section>
+      <section>
+        <p>JavaScript 中获得字符串的 Unicode 字符数</p>
+        <pre><code data-trim data-no-escape>
+          function countUnicodeCharacters (str) {
+            let result = 0;
+            for (let i = 0; i < str.length; i++) {
+              const charCode = str.charCodeAt(i);
+              if (charCode < 0xDC00 || charCode > 0xDFFF) {
+                result ++
+              }
+            }
+            return result;
+          }
+        </code></pre>
+      </section>
+      <section>
+        <p>太麻烦？</p>
+      </section>
+      <section>
+        <p>
+          ECMAScript 2015
+          <a
+            href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/@@iterator"
+            ><code>String.prototype[@@iterator]()</code></a
+          >
+        </p>
+      </section>
+      <section>
+        <code>[...str].length <= 20</code>
+      </section>
+    </section>
+    <section>
+      <section data-auto-animate>
+        <span style="display: inline-block" data-id="end">完</span>
+      </section>
+      <section data-auto-animate>
+        <span style="display: inline-block" data-id="end">完</span
+        ><span style="display: inline-block">了吗？</span>
+      </section>
+    </section>
+    <section>
+      <section>
+        <h2>一个可见字符就对应一个码点吗？</h2>
+      </section>
+      <section data-auto-animate>
+        <div data-id="first">
+          <code>[..."café"].length</code>
+        </div>
+      </section>
+      <section data-auto-animate>
+        <div data-id="first">
+          <code>[..."café"].length</code>
+        </div>
+        <p>vs.</p>
+        <code>[..."café"].length</code>
+      </section>
+      <section>
+        <a
+          href="https://zh.wikipedia.org/wiki/%E7%B5%84%E5%90%88%E5%AD%97%E7%AC%A6"
+          ><h2>组合字符</h2></a
+        >
+        <code>é(U+00e9) = e(U+0065) + ´(U+0301)</code>
+      </section>
+      <section>
+        <a
+          href="https://zh.wikipedia.org/wiki/Unicode%E7%AD%89%E5%83%B9%E6%80%A7"
+          ><h2>Unicode 等价性</h2></a
+        >
+        <p class="fragment" data-fragment-index="0">
+          两个不同的 Unicode 序列表达了相同的含义，我们就说它们是等价的。
+        </p>
+      </section>
+      <section>
+        <h2>Unicode 正规化</h2>
+        <p class="fragment" data-fragment-index="0">
+          将彼此等价的序列转成同一列序的操作被称为 Unicode 正规化（Unicode
+          Normalize）。
+        </p>
+        <p class="fragment" data-fragment-index="1">
+          正规化得到的序列在 Unicode 标准中称作正规形式。
+        </p>
+        <p class="fragment" data-fragment-index="2">
+          ES 2015+ 中可以使用 <code>String.prototype.normalize()</code> 方法。
+        </p>
+      </section>
+      <section>
+        <h2>正规形式</h2>
+        <ul>
+          <li>NFD：标准等价分解模式：用尽可能多的字节（byte）来代表字符。</li>
+          <li>NFC：标准等价组合模式：用尽可能少的字节（byte）来代表字符。</li>
+        </ul>
+      </section>
+      <section>
+        <h2>DEMO</h2>
+        <p>序列 <code>café</code> 的正规形式</p>
+      </section>
+      <section>
+        <code>[...str.normalize()].length <= 20</code>
+      </section>
+    </section>
+    <section>
+      <section data-auto-animate>
+        <span style="display: inline-block" data-id="end">完</span>
+      </section>
+      <section data-auto-animate>
+        <span style="display: inline-block">还没</span
+        ><span style="display: inline-block" data-id="end">完</span>
+      </section>
+    </section>
+    <section>
+      <section>
+        <code>[..."👨‍👩‍👦".normalize()].length</code>
+      </section>
+      <section>
+        <a
+          href="https://zh.wikipedia.org/wiki/%E9%9B%B6%E5%AE%BD%E8%BF%9E%E5%AD%97"
+          ><h2>零宽连字符（ZWJ）</h2></a
+        >
+        <code
+          >👨‍👩‍👦 = 👨(U+1F468) + [ZWJ](U+200D) + 👩(U+1F469) + [ZWJ](U+200D) +
+          👦(U+1F466)</code
+        >
+      </section>
+      <section>
+        <code>[..."👍🏻👍🏼👍🏽👍🏾👍🏿".normalize()].length</code>
+      </section>
+      <section>
+        <a href="https://unicode-table.com/cn/emoji/component/skin-tone/"
+          ><h2>肤色修饰符</h2></a
+        >
+        <code
+          >👍🏿 = 👍(U+1F44D) + [Emoji Modifier Fitzpatrick Type-6](U+1F3FF)</code
+        >
+      </section>
+      <section>
+        <h2>🤦‍♂️</h2>
+      </section>
+    </section>
+    <section data-visibility="hidden">
+      <section>
+        <p>其实都是 JavaScript 的锅</p>
+      </section>
+      <section>
+        <h2>Python</h2>
+        <pre><code data-trim data-no-escape>
+          len("🤣")
+          // 1
+
+          len("👨‍👩‍👦")
+          // 5
+        </code></pre>
+      </section>
+      <section>
+        <h2>Swift</h2>
+        <pre><code data-trim data-no-escape>
+          "🤣".count
+          // 1
+
+          "👨‍👩‍👦".count
+          // 1
+        </code></pre>
+      </section>
+    </section>
+    <section>
+      <h1>完</h1>
+    </section>
+  </section>
+</body>
+
+<script type="module">
+  import Reveal from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.esm.min.js";
+  import Markdown from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/markdown/markdown.esm.min.js";
+  import Highlight from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/highlight.esm.min.js";
+
+  new Reveal({
+    hash: true,
+    hashOneBasedIndex: true,
+    navigationMode: "linear",
+    plugins: [Markdown, Highlight],
+  }).initialize();
+</script>

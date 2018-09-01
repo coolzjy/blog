@@ -1,0 +1,286 @@
+<meta charset="utf-8" />
+<title>HTTP 版本切换</title>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reset.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/theme/black.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/monokai.min.css"
+/>
+<style>
+  :root {
+    --r-heading-text-transform: none;
+  }
+</style>
+
+<body class="reveal">
+  <section class="slides">
+    <section data-markdown>
+      <textarea data-template>
+        # HTTP 版本切换
+      </textarea>
+    </section>
+    <section>
+      <section data-auto-animate>
+        <p>HTTP/1.0（RFC 1945，1996）</p>
+      </section>
+      <section data-auto-animate>
+        <p>HTTP/1.0（RFC 1945，1996）</p>
+        <p>HTTP/1.1（RFC 2068，1997）</p>
+      </section>
+      <section data-auto-animate>
+        <p>HTTP/1.0（RFC 1945，1996）</p>
+        <p>HTTP/1.1（RFC 2068，1997）</p>
+        <p>HTTP/2（2015）</p>
+      </section>
+      <section data-auto-animate>
+        <p>HTTP/1.0（RFC 1945，1996）</p>
+        <p>HTTP/1.1（RFC 2068，1997）</p>
+        <p>HTTP/2（2015）</p>
+        <p>HTTP/3（Draft until 2021.6）</p>
+      </section>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        # `https://`
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        # HTTP Upgrade
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        HTTP/1.1 (1999) 引入（[RFC7230 6.7](https://httpwg.org/specs/rfc7230.html#header.upgrade)）
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## 升级请求
+        ```http
+        GET foo HTTP/1.1
+        Connection: Upgrade
+        Upgrade: protocol-name[/protocol-version], ...
+        ```
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## 接受升级响应
+        ```http
+        HTTP/1.1 101 Switching Protocols
+        Connection: Upgrade
+        Upgrade: protocol-name[/protocol-version]
+
+        ...
+        ```
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## 升级到 WebSocket
+
+        ```http
+        GET ws://example.com/ HTTP/1.1
+        Connection: Upgrade
+        Upgrade: websocket
+        Origin: http://example.com
+        Sec-WebSocket-Version: 13
+        Sec-WebSocket-Key: d4egt7snxxxxxx2WcaMQlA==
+        Sec-WebSocket-Extensions: permessage-deflate; client_max_window_bits
+        ```
+
+        ```http
+        HTTP/1.1 101 Switching Protocols
+        Connection: Upgrade
+        Upgrade: websocket
+        Sec-WebSocket-Accept: gczJQPmQ4Ixxxxxx6pZO8U7UbZs=
+        ```
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## [升级到 WebSocket（在线演示）](http://websocket.org/echo.html)
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## 升级到 HTTP/2
+
+        ```http
+        GET / HTTP/1.1
+        Host: nghttp2.org
+        Connection: Upgrade, HTTP2-Settings
+        Upgrade: h2c
+        HTTP2-Settings: AAMAAABkAARAAAAAAAIAAAAA
+        ```
+
+        ```http
+        HTTP/1.1 101 Switching Protocols
+        Connection: Upgrade
+        Upgrade: h2c
+        Sec-WebSocket-Accept: gczJQPmQ4Ixxxxxx6pZO8U7UbZs=
+        ```
+
+        ```http
+        HTTP/2 200
+        [data]
+        ```
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## 使用 `curl` 请求
+
+        ```bash
+        curl --http2 -I nghttp2.org
+        ```
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## [为什么在浏览器中不生效？](https://stackoverflow.com/questions/46788904/why-do-web-browsers-not-support-h2c-http-2-without-tls)
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        # ALPN
+        Application Layer Protocol Negotiation
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## HTTP Upgrade 的问题
+
+        + 增加系统复杂度 <!-- .element: class="fragment" data-fragment-index="1" -->
+        + 增加服务响应时间 <!-- .element: class="fragment" data-fragment-index="2" -->
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ALPN 是 TLS 的一个扩展，用来协商在安全连接层之上使用何种应用层协议
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## TLS 握手
+
+        ![TLS handshake](/usr/uploads/http-version-switch/tls-handshake.png)
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        1. 客户端在 client hello 中附带支持的协议列表
+        2. 服务端从协议列表中选择一个协议，附加在 server hello 中
+        3. TLS 握手完成后，客户端将使用商定的应用层协议发起请求
+        4. 若服务端不支持客户端提供的所有协议，则 TLS 握手失败
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## DEMO
+        使用 Wireshark 查看 TLS 握手包
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ![](/usr/uploads/http-version-switch/alpn-request.png)
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ![](/usr/uploads/http-version-switch/alpn-response.png)
+      </textarea>
+    </section>
+    <section>
+      <section data-markdown data-auto-animate>
+        <textarea data-template>
+          ## HTTP/3 的挑战
+        </textarea>
+      </section>
+      <section data-markdown data-auto-animate>
+        <textarea data-template>
+          ## HTTP/3 的挑战
+          ## 釜底抽薪
+        </textarea>
+      </section>
+      <section data-markdown data-auto-animate>
+        <textarea data-template>
+          ## HTTP/3 的挑战
+          ## 釜底抽薪
+          ## TCP ➡️ UDP
+        </textarea>
+      </section>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        # HTTP Alternative Services
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        HTTP/2 (2016) 引入（[RFC7838](https://datatracker.ietf.org/doc/html/rfc7838)）
+
+        主要作用是进行流量分发
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ```http
+        Alt-Svc: clear
+        Alt-Svc: <service-list>; ma=<max-age>
+        Alt-Svc: <service-list>; ma=<max-age>; persist=1
+        ```
+
+        ```text
+        <service-list>: <protocol> = <host>:<port>
+        ```
+
+        ```http
+        Alt-Svc: h3="example:443"; ma=86400; persist=1
+        ```
+        <!-- .element: class="fragment" data-fragment-index="1" -->
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## Alt-Svc 如何工作
+
+        ![](/usr/uploads/http-version-switch/http-alternative.png)
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        ## [在线演示](https://http3.is)
+      </textarea>
+    </section>
+    <section data-markdown>
+      <textarea data-template>
+        # Q&A
+      </textarea>
+    </section>
+  </section>
+</body>
+
+<script type="module">
+  import Reveal from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.esm.min.js";
+  import Markdown from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/markdown/markdown.esm.min.js";
+  import Highlight from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/highlight.esm.min.js";
+
+  new Reveal({
+    hash: true,
+    hashOneBasedIndex: true,
+    navigationMode: "linear",
+    plugins: [Markdown, Highlight],
+  }).initialize();
+</script>

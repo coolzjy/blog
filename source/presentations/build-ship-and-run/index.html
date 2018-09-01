@@ -1,0 +1,50 @@
+<meta charset="utf-8" />
+<title>Build Ship & Run</title>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reset.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/theme/black.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/monokai.min.css"
+/>
+<style>
+  :root {
+    --r-heading-text-transform: none;
+  }
+</style>
+
+<body class="reveal">
+  <section class="slides">
+    <section
+      data-markdown="/presentations/build-ship-and-run/index.md"
+      data-separator-vertical="^\r?\n--\r?\n$"
+    ></section>
+  </section>
+</body>
+
+<script type="module">
+  import Reveal from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.esm.min.js";
+  import Markdown from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/markdown/markdown.esm.min.js";
+  import Highlight from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/highlight.esm.min.js";
+  import Notes from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/notes/notes.esm.min.js";
+
+  new Reveal({
+    width: 1280,
+    height: 720,
+    margin: 0.05,
+
+    hash: true,
+    hashOneBasedIndex: true,
+    navigationMode: "linear",
+    plugins: [Markdown, Highlight, Notes],
+  }).initialize();
+</script>
