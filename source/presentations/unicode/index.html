@@ -2,15 +2,19 @@
 <title>Unicode: 挑战•应对•进化</title>
 <link
   rel="stylesheet"
-  href="https://cdn.staticfile.org/reveal.js/4.1.0/reveal.min.css"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reset.min.css"
 />
 <link
   rel="stylesheet"
-  href="https://cdn.staticfile.org/reveal.js/4.1.0/theme/black.min.css"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.min.css"
 />
 <link
   rel="stylesheet"
-  href="https://cdn.staticfile.org/reveal.js/4.1.0/plugin/highlight/monokai.css"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/theme/black.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/monokai.min.css"
 />
 <style>
   * {
@@ -25,6 +29,10 @@
   ul,
   ol {
     margin-left: 0 !important;
+  }
+
+  table {
+    font-size: 0.5em;
   }
 </style>
 
@@ -345,16 +353,13 @@ A ➞ 65, B ➞ 66, C ➞ 67, ……</pre
         <p>如何让 Emoji 「政治正确」？</p>
       </section>
       <section>
-        <h1>👨‍👩‍👧‍👦</h1>
-        <h1 class="fragment">👩‍👩‍👧‍👦👨‍👨‍👧‍👦</h1>
+        <h1>🤰</h1>
+        <h1 class="fragment">🫃</h1>
       </section>
       <section>
         <h1>🎅🏻</h1>
+        <h1 class="fragment">🤶🏻</h1>
         <h1 class="fragment">🤶🏿</h1>
-      </section>
-      <section>
-        <h1>🤰</h1>
-        <h1 class="fragment">🫃</h1>
       </section>
       <section>
         <h2>组合与修饰符</h2>
@@ -404,17 +409,17 @@ A ➞ 65, B ➞ 66, C ➞ 67, ……</pre
 </body>
 
 <script type="module">
-  import Reveal from "https://cdn.staticfile.org/reveal.js/4.3.1/reveal.esm.min.js";
-  import Markdown from "https://cdn.staticfile.org/reveal.js/4.3.1/plugin/markdown/markdown.esm.min.js";
-  import Highlight from "https://cdn.staticfile.org/reveal.js/4.3.1/plugin/highlight/highlight.esm.min.js";
-  import Notes from "https://cdn.staticfile.org/reveal.js/4.3.1/plugin/notes/notes.esm.min.js";
+  import Reveal from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.esm.min.js";
+  import Markdown from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/markdown/markdown.esm.min.js";
+  import Highlight from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/highlight.esm.min.js";
+  import Notes from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/notes/notes.esm.min.js";
 
   new Reveal({
     controls: false,
     hash: true,
     hashOneBasedIndex: true,
-    navigationMode: "linear",
+    navigationMode: 'linear',
     plugins: [Markdown, Highlight, Notes],
-    slideNumber: "c/t",
-  }).initialize();
+    slideNumber: 'c/t',
+  }).initialize()
 </script>
