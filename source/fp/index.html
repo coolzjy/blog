@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>花密</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="translucent" />
+    <link href="//cdn.bootcss.com/pure/0.6.0/base-min.css" rel="stylesheet" />
+    <link
+      href="//cdn.bootcss.com/pure/0.6.0/grids-core-min.css"
+      rel="stylesheet"
+    />
+    <link href="//cdn.bootcss.com/pure/0.6.0/grids-min.css" rel="stylesheet" />
+    <link
+      href="//cdn.bootcss.com/pure/0.6.0/grids-responsive-min.css"
+      rel="stylesheet"
+    />
+    <link href="//cdn.bootcss.com/pure/0.6.0/forms-min.css" rel="stylesheet" />
+    <style media="screen">
+      .container {
+        box-sizing: border-box;
+        padding: 10px;
+      }
+    </style>
+    <script
+      src="//cdn.bootcss.com/blueimp-md5/2.3.0/js/md5.min.js"
+      charset="utf-8"
+    ></script>
+  </head>
+  <body>
+    <div class="pure-g">
+      <div class="pure-u-md-1-4 pure-u-xl-2-5"></div>
+      <div class="pure-u-1 pure-u-md-1-2 pure-u-xl-1-5 container">
+        <form class="pure-form">
+          <fieldset class="pure-group">
+            <input
+              type="password"
+              id="pwd"
+              class="pure-input-1"
+              placeholder="记忆密码"
+            />
+            <input
+              type="text"
+              id="key"
+              class="pure-input-1"
+              placeholder="区分代码"
+            />
+          </fieldset>
+          <input
+            type="text"
+            id="fp"
+            class="pure-input-1"
+            placeholder="花密"
+            readonly
+          />
+        </form>
+      </div>
+      <div class="pure-u-md-1-4 pure-u-xl-2-5"></div>
+    </div>
+  </body>
+  <script type="text/javascript">
+    function getFlowerPassword(password, identifier) {
+      const str = "abeklnosuvwxy01279";
+      const md5one = md5(password, identifier);
+      const md5two = md5(md5one, "snow");
+      const md5three = md5(md5one, "kise");
+      //计算大小写
+      const rule = md5three.split("");
+      const source = md5two.split("");
+      for (let i = 0; i < 32; i++) {
+        if (isNaN(source[i])) {
+          if (str.search(rule[i]) > -1) {
+            source[i] = source[i].toUpperCase();
+          }
+        }
+      }
+      const code32 = source.join("");
+      return isNaN(code32[0]) ? code32.slice(0, 16) : "K" + code32.slice(1, 16);
+    }
+
+    void (function (d) {
+      const pwd = d.querySelector("#pwd");
+      const key = d.querySelector("#key");
+      const fp = d.querySelector("#fp");
+
+      // auto fill
+      const search = new URLSearchParams(location.search);
+      const p = search.get("p");
+      const k = search.get("k");
+      pwd.value = p ?? "";
+      key.value = k ?? "";
+      updateFp();
+
+      // event listeners
+      pwd.addEventListener("keyup", updateFp);
+      key.addEventListener("keyup", updateFp);
+      fp.addEventListener("focus", function () {
+        this.select();
+      });
+
+      function updateFp() {
+        var pwdStr = pwd.value;
+        var keyStr = key.value;
+        if (pwdStr && keyStr) {
+          fp.value = getFlowerPassword(pwdStr, keyStr);
+        } else {
+          fp.value = "";
+        }
+      }
+    })(document);
+  </script>
+</html>
