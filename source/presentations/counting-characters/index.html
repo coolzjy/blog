@@ -247,6 +247,56 @@
         <h2>🤦‍♂️</h2>
       </section>
     </section>
+    <section>
+      <section>
+        <h2>那到底应该怎么数？</h2>
+      </section>
+      <section>
+        <p>用户感知的“一个字符”</p>
+        <p class="fragment" data-fragment-index="0">在 Unicode 中称为</p>
+        <h2 class="fragment" data-fragment-index="1">Grapheme Cluster</h2>
+      </section>
+      <section>
+        <p>ECMAScript 2022</p>
+        <h2><code>Intl.Segmenter</code></h2>
+      </section>
+      <section>
+        <p><code>Intl.Segmenter</code> 用来按语言规则切分文本</p>
+        <pre class="fragment" data-fragment-index="0"><code data-trim>
+          const segmenter = new Intl.Segmenter("zh", {
+            granularity: "grapheme"
+          });
+        </code></pre>
+      </section>
+      <section>
+        <pre><code data-trim data-no-escape>
+          const segmenter = new Intl.Segmenter("zh", {
+            granularity: "grapheme"
+          });
+
+          [...segmenter.segment("👨‍👩‍👦")].length
+          // 1
+
+          [...segmenter.segment("👍🏻👍🏼👍🏽👍🏾👍🏿")].length
+          // 5
+        </code></pre>
+      </section>
+      <section>
+        <p>封装一下</p>
+        <pre><code data-trim>
+          const segmenter = new Intl.Segmenter("zh", {
+            granularity: "grapheme"
+          });
+
+          function countCharacters(str) {
+            return [...segmenter.segment(str)].length;
+          }
+        </code></pre>
+      </section>
+      <section>
+        <code>countCharacters(str) <= 20</code>
+      </section>
+    </section>
     <section data-visibility="hidden">
       <section>
         <p>其实都是 JavaScript 的锅</p>

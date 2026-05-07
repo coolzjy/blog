@@ -76,10 +76,52 @@ combiningCharacter.normalize() === precomposedCharacter.normalize(); // true
 
 除了使用零宽连接符创建新的 emoji，在极致的平权思想的推动下， 几乎所有涉及人物的 emoji 还可以连接[肤色修饰符](https://unicode-table.com/cn/emoji/component/skin-tone/)：`👍🏻👍🏼👍🏽👍🏾👍🏿`。上述 5 个可见字符其实是由 10 个 Unicode 码位组成：👍🏿 = 👍([U+1F44D](https://unicode-table.com/cn/1F44D/)) + [Emoji Modifier Fitzpatrick Type-6] ([U+1F3FF](https://unicode-table.com/cn/1F3FF/))
 
+## Intl.Segmenter
+
+讲到这里，问题终于变成了一个更准确的问题：如果用户理解的“一个字符”既不等于 UTF-16 码元数量，也不等于 Unicode 码点数量，那么有没有办法直接按照用户感知的字符来切分字符串？
+
+在 Unicode 中，用户感知的“一个字符”通常被称为字素簇（Grapheme Cluster）。例如 `👨‍👩‍👧‍👦` 虽然由多个码点组成，但对用户来说是一个家庭 emoji；`👍🏿` 虽然由基础 emoji 和肤色修饰符组成，但对用户来说也是一个字符。也就是说，在做输入长度限制时，我们真正想数的往往不是码元，也不是码点，而是字素簇。
+
+在 ES 2022 中，可以使用 `Intl.Segmenter` 来按语言规则切分文本。它支持三种粒度：`grapheme`、`word` 和 `sentence`。对于字符计数来说，我们关心的是 `grapheme`：
+
+```js
+const segmenter = new Intl.Segmenter("zh", {
+  granularity: "grapheme",
+});
+```
+
+`segmenter.segment(input)` 会返回一个可迭代对象，其中每一项表示一个分割结果。借助展开语法，就可以得到更符合用户直觉的字符数量：
+
+```js
+const segmenter = new Intl.Segmenter("zh", {
+  granularity: "grapheme",
+});
+
+[...segmenter.segment("👨‍👩‍👧‍👦")].length; // 1
+[...segmenter.segment("👍🏻👍🏼👍🏽👍🏾👍🏿")].length; // 5
+[...segmenter.segment("café")].length; // 4
+```
+
+因此，开头的字符长度限制可以封装为：
+
+```js
+const segmenter = new Intl.Segmenter("zh", {
+  granularity: "grapheme",
+});
+
+function countCharacters(input) {
+  return [...segmenter.segment(input)].length;
+}
+
+countCharacters(input) <= 20;
+```
+
+需要注意的是，`Intl.Segmenter` 解决的是“按照标准文本分割规则切分字符串”的问题，而不是“预测最终渲染结果”的问题。渲染结果仍然可能受到字体、操作系统和排版引擎影响。但在 Web 应用中，如果需求是限制用户感知的字符数量，`Intl.Segmenter` 已经比手写代理对判断、`[...str]` 或 `normalize()` 更接近问题本身。
+
 ## 总结
 
-讲到现在，我们开头提到的问题仍然没有被解决：如何判断字符串长度？无法解决这个问题的原因是我们自始至终没有对「字符串长度」给出一个严谨的定义。
+讲到现在，我们开头提到的问题终于可以更明确地回答了：如何判断字符串长度，取决于你如何定义“长度”。
 
-一般来讲，用户理解的长度限制一定是「可见字符数量」，但相信经过上面的讨论你已经能够理解，想要准确获得可见字符的数量是几乎不可能实现的：除了要考虑各种组合字符、零宽字符、合字及修饰符，还需要考虑渲染引擎是否支持上述特性，使用的字体是否能够渲染特定的合字等等情况。或者换句话来说，在不同的渲染环境中，相同的码点序列可能得到不同的结果（相信大家都会碰到在 emoji 在终端中无法正常渲染的情况）。
+如果长度指的是 JavaScript 字符串内部的 UTF-16 码元数量，可以使用 `str.length`；如果长度指的是 Unicode 码点数量，可以使用 `[...str].length`；如果需要先消除组合字符与预组字符带来的差异，可以先使用 `normalize()`；而如果长度指的是用户感知的字符数量，在现代浏览器和运行时中，更合理的选择是使用 `Intl.Segmenter` 按字素簇进行切分。
 
-退而求其次，更加合理的选择是使用 Unicode 码点数量来代表字符串长度。一方面大多数 Unicode 码点最终的渲染结果都是一个可见字符，另一方面代码中获取码点数量的成本不高。这应该是最为通用的解决方案。
+当然，用户感知字符数量仍然不等于最终渲染出来的字形数量。渲染引擎是否支持特定的合字、字体是否包含对应字形，都会影响最终显示结果。但对于输入长度限制这类场景，`Intl.Segmenter` 提供了一个足够标准、足够接近用户直觉的方案。在无法使用它的环境中，再退而求其次使用 Unicode 码点数量，通常会比直接使用 `str.length` 更合理。
