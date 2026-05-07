@@ -1,21 +1,6 @@
 <meta charset="utf-8" />
 <title>HTTP 版本切换</title>
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reset.min.css"
-/>
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.min.css"
-/>
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/theme/black.min.css"
-/>
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/monokai.min.css"
-/>
+<script src="/presentations/reveal-import-map.js"></script>
 <style>
   :root {
     --r-heading-text-transform: none;
@@ -273,9 +258,9 @@
 </body>
 
 <script type="module">
-  import Reveal from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/reveal.esm.min.js";
-  import Markdown from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/markdown/markdown.esm.min.js";
-  import Highlight from "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.0.5/plugin/highlight/highlight.esm.min.js";
+  import Reveal from "reveal.js";
+  import Markdown from "reveal.js/plugin/markdown";
+  import Highlight from "reveal.js/plugin/highlight";
 
   new Reveal({
     hash: true,
