@@ -1,0 +1,516 @@
+<meta charset="utf-8" />
+<title>科学上网 101：识别、阻断与对抗</title>
+<script src="/presentations/reveal-import-map.js"></script>
+<style>
+  :root {
+    --r-heading-text-transform: none;
+  }
+
+  .secondary {
+    color: #72d6d6;
+    font-size: 0.62em;
+  }
+
+  .muted {
+    color: #999;
+  }
+
+  .small {
+    font-size: 0.68em;
+  }
+
+  .tiny {
+    font-size: 0.52em;
+  }
+
+  .reveal pre code {
+    max-height: 520px;
+  }
+
+  table {
+    font-size: 0.52em;
+  }
+</style>
+
+<body class="reveal">
+  <section class="slides">
+    <section>
+      <h1>科学上网 101</h1>
+      <h2>识别、阻断与对抗</h2>
+      <aside class="notes">
+        大家好，今天分享的主题是“科学上网 101：识别、阻断与对抗”。这个分享不会推荐服务商，不会提供节点或配置，也不会讲具体绕过某个系统的操作步骤。我们只讨论公开资料和通用网络原理：一次网络访问中哪些信息会暴露，GFW 可能如何识别和阻断通信，以及代理协议为什么会从普通转发演进到加密、伪装和抗探测。
+      </aside>
+    </section>
+
+    <section>
+      <h2>三件事</h2>
+      <ol>
+        <li class="fragment">流量识别：GFW 能看到什么？</li>
+        <li class="fragment">通讯阻断：GFW 如何打断连接？</li>
+        <li class="fragment">技术对抗：代理协议如何降低可识别性？</li>
+      </ol>
+      <aside class="notes">
+        今天分三部分。第一部分是流量识别，我们从一次普通 HTTPS 访问开始，看哪些信息是明文暴露的，哪些信息被加密了，以及为什么加密内容不等于隐藏连接。第二部分是通讯阻断，沿着 DNS、IP、TCP、TLS、HTTP 这条链路，看 GFW 可以在哪些位置让通信失败。第三部分是技术对抗，解释普通代理、加密代理、伪装代理和高性能代理分别解决什么问题，以及工具在科学上网系统里负责什么。
+      </aside>
+    </section>
+
+    <section>
+      <section>
+        <h1>一、流量识别</h1>
+        <p class="secondary">HTTPS 加密了内容，但没有隐藏连接本身</p>
+        <aside class="notes">
+          第一部分，我们讲流量识别。一个常见误解是：只要使用 HTTPS，网络中间设备就什么都看不到。实际情况不是这样。HTTPS 的确保护了应用层内容，但连接的目标、握手特征和流量行为仍然会留下大量元数据。GFW 不一定需要解密内容，只要能稳定识别连接意图，就可以做后续阻断。
+        </aside>
+      </section>
+
+      <section>
+        <h2>一次 HTTPS 访问</h2>
+        <pre><code class="language-text">Browser
+  -> DNS
+  -> IP Routing
+  -> TCP / QUIC
+  -> TLS
+  -> HTTP
+  -> Server</code></pre>
+        <aside class="notes">
+          先看一次典型的 HTTPS 访问。浏览器拿到 URL 后，通常先做 DNS 解析，把域名转换成 IP。然后 IP 层把包路由到目标地址。传输层可能是 TCP，也可能是基于 UDP 的 QUIC。接下来是 TLS 握手，建立加密通道。最后 HTTP 请求和响应才在加密通道里传输。用户看到的是打开一个网页，但从网络角度看，它是一串分层协议的协作。
+        </aside>
+      </section>
+
+      <section data-auto-animate>
+        <h2>DNS 阶段</h2>
+        <pre><code class="language-text">example.com ?  ->  93.184.216.34</code></pre>
+        <ul>
+          <li class="fragment">查询域名可能暴露</li>
+          <li class="fragment">解析结果决定后续连接目标</li>
+        </ul>
+        <aside class="notes">
+          DNS 阶段回答的是“这个域名对应哪个 IP”。如果 DNS 查询没有额外保护，查询的域名就是明文可见的。即使后续 HTTP 内容全部加密，DNS 查询本身也已经暴露了访问意图。解析结果也很关键，因为后续连接会根据这个 IP 发起，如果这个阶段被污染，连接从一开始就会走错。
+        </aside>
+      </section>
+
+      <section data-auto-animate>
+        <h2>TCP / QUIC 阶段</h2>
+        <pre><code class="language-text">Client IP:Port  ->  Server IP:Port</code></pre>
+        <ul>
+          <li class="fragment">源 IP、目标 IP、端口暴露</li>
+          <li class="fragment">TCP 与 QUIC 有不同协议特征</li>
+        </ul>
+        <aside class="notes">
+          到 TCP 或 QUIC 阶段，至少会暴露源 IP、目标 IP 和端口。传统 HTTPS 通常使用 TCP 443，HTTP/3 使用 QUIC，也就是 UDP 443。中间设备不需要知道你请求的是哪个页面，也能知道你正在连接哪个 IP、哪个端口、使用哪类传输协议。这些信息足以支持 IP 黑名单、端口策略和协议分类。
+        </aside>
+      </section>
+
+      <section data-auto-animate>
+        <h2>TLS 阶段</h2>
+        <pre><code class="language-text">ClientHello
+  SNI: example.com
+  ALPN: h2, http/1.1
+  Cipher Suites: ...
+  Extensions: ...</code></pre>
+        <aside class="notes">
+          TLS 阶段尤其重要。TLS 握手的 ClientHello 里包含很多信息，比如 SNI，也就是客户端想访问的域名；ALPN，也就是客户端支持的应用层协议，比如 HTTP/2 或 HTTP/1.1；还有密码套件列表、扩展列表和扩展顺序。这些字段组合起来可以形成 TLS 指纹。即使请求内容被加密，握手阶段的这些特征仍然可能被识别。
+        </aside>
+      </section>
+
+      <section>
+        <h2>HTTP 阶段</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>HTTP</th>
+              <th>HTTPS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Host 可见</td>
+              <td>Host 在 TLS 内</td>
+            </tr>
+            <tr>
+              <td>URL 可见</td>
+              <td>路径通常加密</td>
+            </tr>
+            <tr>
+              <td>Cookie 可见</td>
+              <td>Cookie 通常加密</td>
+            </tr>
+            <tr>
+              <td>Body 可见</td>
+              <td>Body 通常加密</td>
+            </tr>
+          </tbody>
+        </table>
+        <aside class="notes">
+          到 HTTP 阶段，如果是明文 HTTP，Host、URL、Cookie、请求体和响应体都可以被网络中间设备看到。如果是 HTTPS，这些应用层内容通常会被 TLS 加密。注意这里的关键词是“内容”。HTTPS 保护的是 HTTP 内容，不等于隐藏 DNS、目标 IP、SNI、TLS 指纹和流量行为。
+        </aside>
+      </section>
+
+      <section>
+        <h2>暴露的信息</h2>
+        <ul>
+          <li class="fragment">源 IP / 目标 IP / 端口</li>
+          <li class="fragment">DNS 查询</li>
+          <li class="fragment">SNI / ALPN / TLS 指纹</li>
+          <li class="fragment">包大小、时间序列、连接时长</li>
+          <li class="fragment">失败、重试和长连接行为</li>
+        </ul>
+        <aside class="notes">
+          总结一下，一次访问里可能暴露的信息包括源 IP、目标 IP、端口、DNS 查询、SNI、ALPN、TLS 指纹，以及包大小、时间序列、连接持续时长、失败重试行为和长连接行为。这些信息被称为元数据。元数据不是通信内容，但它们足以描述很多通信行为。
+        </aside>
+      </section>
+
+      <section>
+        <h2>被加密的信息</h2>
+        <ul>
+          <li class="fragment">HTTP 路径</li>
+          <li class="fragment">大部分 HTTP Header</li>
+          <li class="fragment">Cookie</li>
+          <li class="fragment">Request Body</li>
+          <li class="fragment">Response Body</li>
+        </ul>
+        <aside class="notes">
+          被 HTTPS 加密的主要是 HTTP 内容，例如请求路径、大部分 Header、Cookie、请求体和响应体。这些内容对隐私和安全非常关键，所以 HTTPS 仍然是现代 Web 的基础。但对审查系统来说，不一定必须读取这些内容。只要能判断“这条连接大概率是什么”，就可能触发阻断策略。
+        </aside>
+      </section>
+
+      <section>
+        <h2>GFW 如何识别？</h2>
+        <ul>
+          <li class="fragment">DNS 识别</li>
+          <li class="fragment">IP 识别</li>
+          <li class="fragment">HTTP Host / TLS SNI 识别</li>
+          <li class="fragment">TLS / QUIC 指纹识别</li>
+          <li class="fragment">流量行为识别</li>
+          <li class="fragment">主动探测</li>
+        </ul>
+        <aside class="notes">
+          GFW 的识别方式可以从简单到复杂排列。最简单的是 DNS 和 IP 识别：你查了什么域名，连了哪个地址。然后是 Host 和 SNI 识别：明文 HTTP 或 TLS 握手中暴露了目标域名。再往后是 TLS 和 QUIC 指纹识别：通过握手字段组合判断客户端或协议实现。更复杂的是流量行为识别：通过包长、方向和时间序列判断应用类型。最后是主动探测：当某个 IP 和端口被怀疑是代理服务时，系统主动连接它来验证。
+        </aside>
+      </section>
+    </section>
+
+    <section>
+      <section>
+        <h1>二、通讯阻断</h1>
+        <p class="secondary">识别之后，在哪里让连接失败？</p>
+        <aside class="notes">
+          第二部分讲通讯阻断。识别只是第一步，识别之后还需要让连接失败。GFW 不一定需要控制完整连接，也不一定需要成为通信双方之间的代理。很多阻断可以通过旁路观察和注入干扰完成。我们仍然沿着一次访问链路来看：DNS、IP 路由、TCP 或 QUIC、TLS、HTTP，每一层都有不同的阻断方式。
+        </aside>
+      </section>
+
+      <section>
+        <h2>阻断点总览</h2>
+        <pre><code class="language-text">DNS
+  -> IP Routing
+  -> TCP / QUIC
+  -> TLS
+  -> HTTP</code></pre>
+        <aside class="notes">
+          这是阻断点总览。DNS 阶段可以污染解析结果。IP 路由阶段可以丢弃到特定地址的流量。TCP 或 QUIC 阶段可以重置连接、丢包或限制 UDP。TLS 阶段可以基于 SNI 或指纹阻断握手。HTTP 阶段可以过滤明文 Host、URL 或关键词。对用户来说，这些都可能表现为“打不开”。
+        </aside>
+      </section>
+
+      <section>
+        <h2>DNS 阶段</h2>
+        <ul>
+          <li class="fragment">DNS 污染</li>
+          <li class="fragment">返回错误 IP</li>
+          <li class="fragment">返回不可达 IP</li>
+          <li class="fragment">干扰境外 DNS 查询</li>
+        </ul>
+        <aside class="notes">
+          DNS 阶段的阻断最直观。如果用户查询某个域名，网络中间设备可以注入伪造 DNS 响应，返回错误 IP 或不可达 IP。这样浏览器后续连接的就不是正确服务器。还有一种情况是干扰境外 DNS 查询，使用户即使使用外部 DNS，也拿不到可靠结果。DNS 阻断的特点是发生得很早，连接还没有真正建立就已经失败。
+        </aside>
+      </section>
+
+      <section>
+        <h2>IP 路由阶段</h2>
+        <ul>
+          <li class="fragment">IP 黑名单</li>
+          <li class="fragment">路由丢弃</li>
+          <li class="fragment">封锁目标 IP</li>
+          <li class="fragment">封锁代理服务器 IP</li>
+        </ul>
+        <aside class="notes">
+          IP 路由阶段的阻断不关心域名，只关心地址。如果某个目标 IP 或代理服务器 IP 被列入黑名单，发往这个地址的包可以被丢弃或阻断。用户侧看到的通常是连接超时。IP 封锁的优点是简单直接，缺点是误伤风险高，因为一个 IP 可能承载多个网站或服务。
+        </aside>
+      </section>
+
+      <section>
+        <h2>TCP / QUIC 阶段</h2>
+        <ul>
+          <li class="fragment">TCP Reset 注入</li>
+          <li class="fragment">丢包 / 限速</li>
+          <li class="fragment">UDP 阻断</li>
+          <li class="fragment">QUIC 降级或失败</li>
+        </ul>
+        <aside class="notes">
+          TCP 阶段常见的是 Reset 注入。旁路设备观察到某个连接命中特征后，可以伪造 TCP Reset 包发给通信双方，让它们以为对方关闭了连接。对于 QUIC，因为它运行在 UDP 上，阻断方式可能是丢弃 UDP 包、限制特定端口，或者让 HTTP/3 失败并回落到 HTTP/2。用户侧可能看到连接突然断开、长连接不稳定，或者某些网络下 HTTP/3 不可用。
+        </aside>
+      </section>
+
+      <section>
+        <h2>TLS 阶段</h2>
+        <ul>
+          <li class="fragment">基于 SNI 阻断</li>
+          <li class="fragment">基于 ClientHello 指纹阻断</li>
+          <li class="fragment">基于证书或握手行为阻断</li>
+          <li class="fragment">基于代理协议握手特征阻断</li>
+        </ul>
+        <aside class="notes">
+          TLS 阶段的阻断通常发生在握手期间。传统 TLS 中，SNI 会暴露目标域名，因此可以基于 SNI 判断是否阻断。即使没有直接使用 SNI，也可以观察 ClientHello 的指纹，比如扩展列表、密码套件、ALPN 和顺序。如果某个代理客户端的 TLS 行为和主流浏览器明显不同，也可能形成可识别特征。
+        </aside>
+      </section>
+
+      <section>
+        <h2>HTTP 阶段</h2>
+        <ul>
+          <li class="fragment">明文 Host / URL 识别</li>
+          <li class="fragment">关键词过滤</li>
+          <li class="fragment">HTTP 响应注入</li>
+          <li class="fragment">连接重置</li>
+        </ul>
+        <aside class="notes">
+          如果流量是明文 HTTP，阻断就更直接。Host、URL、Header 和内容都可以被观察和匹配，系统可以基于域名、路径或关键词触发过滤，也可以注入响应或重置连接。随着 HTTPS 普及，明文 HTTP 内容层过滤的重要性下降了，但在未加密流量、错误配置和某些内网环境中，它仍然有效。
+        </aside>
+      </section>
+
+      <section>
+        <h2>GFW 架构简述</h2>
+        <ul>
+          <li class="fragment">不是单一设备</li>
+          <li class="fragment">部署在关键链路和国际出口附近</li>
+          <li class="fragment">检测、规则、注入、探测系统组合</li>
+          <li class="fragment">公开资料显示其能力是组合式的</li>
+        </ul>
+        <aside class="notes">
+          简单聊一下 GFW 架构。根据公开研究和泄露资料，它不应被理解成一台单一设备，而更像是一组部署在关键链路和国际出口附近的系统组合。它可以观察流量，匹配规则，注入 DNS 响应或 TCP Reset，也可以维护 IP 和域名规则库，并对可疑代理服务进行主动探测。它的能力是组合式的，不同链路和不同网络环境下表现可能不同。
+        </aside>
+      </section>
+
+      <section>
+        <h2>旁路观察 + 注入干扰</h2>
+        <pre><code class="language-text">Client  ------------------------> Server
+             \                  /
+              \-- Observer ----/
+                    |
+                    +-- Inject DNS / TCP RST / drop policy</code></pre>
+        <aside class="notes">
+          一个重要概念是旁路观察加注入干扰。GFW 不一定需要位于通信双方之间并完整转发所有数据。它可以在旁路观察流量，发现命中特征后，向连接中注入伪造响应，或者触发其他阻断策略。对 TCP 来说，注入 Reset 包就可能让连接中断。对 DNS 来说，抢先注入伪造响应就可能污染解析结果。这也是为什么它不需要解密内容，也可以让通信失败。
+        </aside>
+      </section>
+    </section>
+
+    <section>
+      <section>
+        <h1>三、技术对抗</h1>
+        <p class="secondary">从“能代理”到“难识别”</p>
+        <aside class="notes">
+          第三部分讲技术对抗。代理协议的演进可以理解为从“能代理”到“难识别”。最早的普通代理解决的是转发问题，但代理身份很明显。加密代理开始隐藏代理请求和真实目标。伪装代理尝试把外层流量做得更像正常互联网流量。高性能代理则更多关注弱网和吞吐体验。我们不会展开成协议百科，只看这些类型各自解决什么问题。
+        </aside>
+      </section>
+
+      <section>
+        <h2>普通代理</h2>
+        <p class="secondary">能转发，但不能隐藏</p>
+        <ul>
+          <li class="fragment">HTTP Proxy</li>
+          <li class="fragment">SOCKS5</li>
+          <li class="fragment">简单、成熟、通用</li>
+          <li class="fragment">代理身份明显</li>
+        </ul>
+        <aside class="notes">
+          普通代理的代表是 HTTP Proxy 和 SOCKS5。它们非常成熟，也很通用，适合企业代理、本地调试和普通网络转发。但它们解决的是“如何转发流量”，不是“如何隐藏代理”。协议特征明显，代理身份明显，默认不提供抗主动探测能力，所以不适合强对抗环境。普通代理的结论是：能转发，不等于能科学上网。
+        </aside>
+      </section>
+
+      <section>
+        <h2>加密代理</h2>
+        <p class="secondary">隐藏代理请求和真实目标</p>
+        <ul>
+          <li class="fragment">代表：Shadowsocks 类</li>
+          <li class="fragment">加密代理载荷</li>
+          <li class="fragment">不明文暴露目标域名和端口</li>
+          <li class="fragment">降低中间设备直接解析协议的能力</li>
+        </ul>
+        <aside class="notes">
+          加密代理的关键进步，是把代理请求本身加密。中间设备无法直接看到客户端要求代理连接哪个域名、哪个端口，也不能像分析普通 SOCKS5 那样直接解析协议字段。Shadowsocks 类协议就是这个阶段的代表。它让“代理内容可见”变成“代理内容不可见”，这是科学上网协议演进中的关键一步。
+        </aside>
+      </section>
+
+      <section>
+        <h2>加密代理的局限</h2>
+        <ul>
+          <li class="fragment">握手仍可能有指纹</li>
+          <li class="fragment">包长和时间序列仍可能有特征</li>
+          <li class="fragment">服务器 IP 仍可能被封锁</li>
+          <li class="fragment">大规模使用后容易被总结特征</li>
+        </ul>
+        <aside class="notes">
+          但加密代理不是银弹。加密隐藏了内容，却不一定隐藏协议行为。握手模式、包长分布、时间序列、长连接行为都可能形成特征。服务器 IP 仍然暴露，仍然可能被封锁。协议使用规模越大，越容易被观察、统计和归纳出稳定特征。所以加密解决了内容可见性，但没有完全解决协议可识别性。
+        </aside>
+      </section>
+
+      <section>
+        <h2>伪装代理</h2>
+        <p class="secondary">让代理看起来像正常流量</p>
+        <ul>
+          <li class="fragment">代表：Trojan / VLESS + TLS 类组合</li>
+          <li class="fragment">常见承载：TLS / WebSocket / HTTP/2 / gRPC</li>
+          <li class="fragment">常见端口：443</li>
+          <li class="fragment">错误请求尽量不暴露代理行为</li>
+        </ul>
+        <aside class="notes">
+          伪装代理的目标不是让流量绝对不可见，而是让它看起来更像正常互联网流量。常见做法是承载在 TLS、WebSocket、HTTP/2 或 gRPC 等生态上，使用 443 这样的常见端口，并在未认证或错误请求时尽量不暴露代理服务行为。Trojan、VLESS 加 TLS 这类组合都体现了这个方向。核心不是“藏起来”，而是提高识别成本和误伤成本。
+        </aside>
+      </section>
+
+      <section>
+        <h2>TLS 指纹</h2>
+        <pre><code class="language-text">Browser-like TLS  ≠  Any TLS</code></pre>
+        <ul>
+          <li class="fragment">ClientHello 字段组合会暴露实现差异</li>
+          <li class="fragment">不像浏览器的 HTTPS 也可能很显眼</li>
+          <li class="fragment">uTLS / Reality 类思路关注这一层</li>
+        </ul>
+        <aside class="notes">
+          伪装成 HTTPS 也有细节。不是所有 TLS 流量都像浏览器 TLS。ClientHello 里的密码套件、扩展、顺序和 ALPN 组合，会暴露具体客户端实现。一个代理客户端如果说自己是 HTTPS，但 TLS 指纹和主流浏览器差异很大，反而可能显眼。uTLS、Reality 这类思路关注的就是让 TLS 行为更接近真实浏览器或真实站点行为。
+        </aside>
+      </section>
+
+      <section>
+        <h2>高性能代理</h2>
+        <p class="secondary">改善弱网体验，但不是天然更隐蔽</p>
+        <ul>
+          <li class="fragment">代表：Hysteria2 / TUIC</li>
+          <li class="fragment">常基于 UDP / QUIC</li>
+          <li class="fragment">对高延迟、高丢包链路更友好</li>
+          <li class="fragment">UDP 在部分网络中更容易被限制</li>
+        </ul>
+        <aside class="notes">
+          高性能代理主要解决链路体验问题。Hysteria2、TUIC 这类协议通常基于 UDP 或 QUIC，对高延迟、高丢包环境更友好，吞吐和体验可能更好。但性能优化不等于天然更隐蔽。UDP 在一些网络中更容易被限制，QUIC 也有自己的协议特征。因此它们更适合从性能和网络环境角度理解，而不是简单理解成“更安全”或“更抗识别”。
+        </aside>
+      </section>
+
+      <section>
+        <h2>协议类型比较</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>代表</th>
+              <th>解决什么</th>
+              <th>短板</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>普通代理</td>
+              <td>HTTP Proxy / SOCKS5</td>
+              <td>转发流量</td>
+              <td>不隐藏代理身份</td>
+            </tr>
+            <tr>
+              <td>加密代理</td>
+              <td>Shadowsocks 类</td>
+              <td>隐藏代理请求和目标</td>
+              <td>仍可能有协议指纹</td>
+            </tr>
+            <tr>
+              <td>伪装代理</td>
+              <td>Trojan / VLESS + TLS</td>
+              <td>接近正常 HTTPS 流量</td>
+              <td>配置和维护复杂</td>
+            </tr>
+            <tr>
+              <td>高性能代理</td>
+              <td>Hysteria2 / TUIC</td>
+              <td>改善弱网体验</td>
+              <td>依赖 UDP 可用性</td>
+            </tr>
+            <tr>
+              <td>VPN</td>
+              <td>WireGuard / OpenVPN</td>
+              <td>建立虚拟网络</td>
+              <td>不一定适合抗识别</td>
+            </tr>
+          </tbody>
+        </table>
+        <aside class="notes">
+          这张表只做类型比较，不是工具推荐。普通代理解决转发，但不隐藏身份。加密代理隐藏代理请求和目标，但仍可能有协议指纹。伪装代理试图接近正常 HTTPS 流量，但配置和维护复杂。高性能代理改善弱网体验，但依赖 UDP 可用性。VPN 建立虚拟网络，适合很多企业和安全场景，但安全 VPN 不等于天然适合抗审查。
+        </aside>
+      </section>
+
+      <section>
+        <h2>什么样的代理适合科学上网？</h2>
+        <ul>
+          <li class="fragment">隐藏真实访问目标</li>
+          <li class="fragment">协议本身不容易被识别</li>
+          <li class="fragment">能抵抗主动探测</li>
+          <li class="fragment">DNS 处理清晰</li>
+          <li class="fragment">支持分流和可控失败模式</li>
+        </ul>
+        <aside class="notes">
+          判断一个代理是否适合科学上网，不应该只看名字或测速。更重要的是看它是否隐藏真实访问目标，协议本身是否容易被识别，是否能抵抗主动探测，DNS 处理是否清晰，是否支持分流，以及失败时是否可控。所谓可控失败，是指在代理不可用时，不应该悄悄泄露 DNS，也不应该把本来应该代理的目标直接直连出去。
+        </aside>
+      </section>
+
+      <section>
+        <h2>工具负责什么？</h2>
+        <ul>
+          <li class="fragment">系统代理 / TUN 接管</li>
+          <li class="fragment">DNS 处理</li>
+          <li class="fragment">分流规则</li>
+          <li class="fragment">协议客户端实现</li>
+          <li class="fragment">节点管理、日志与排错</li>
+        </ul>
+        <aside class="notes">
+          最后简单讲工具。工具不是协议。协议决定流量怎么传，工具决定怎么接管系统流量、怎么做 DNS、怎么分流、怎么管理节点、怎么看日志和排错。很多问题并不是协议问题，而是工具的 DNS、TUN、系统代理或规则配置问题。理解工具的分工，比记住某个工具名字更重要。
+        </aside>
+      </section>
+
+      <section>
+        <h2>常见工具</h2>
+        <ul class="small">
+          <li>macOS / Windows：Clash Verge Rev、v2rayN、NekoRay、sing-box GUI</li>
+          <li>iOS：Shadowrocket、Stash、Surge、Loon</li>
+          <li>Android：v2rayNG、NekoBox、sing-box</li>
+          <li>路由器：OpenWrt + OpenClash / passwall</li>
+        </ul>
+        <aside class="notes">
+          常见工具可以按平台粗略了解。macOS 和 Windows 上常见的是 Clash Verge Rev、v2rayN、NekoRay 和 sing-box GUI。iOS 上常见的是 Shadowrocket、Stash、Surge、Loon。Android 上常见的是 v2rayNG、NekoBox 和 sing-box。路由器上常见的是 OpenWrt 搭配 OpenClash 或 passwall。这里不是推荐清单，只是帮助大家建立“工具是客户端和规则平台”的概念。
+        </aside>
+      </section>
+    </section>
+
+    <section>
+      <h2>最后</h2>
+      <p class="fragment">科学上网不是“加密一下”</p>
+      <p class="fragment">而是让中间设备无法低成本、高置信度地区分代理流量和正常流量</p>
+      <aside class="notes">
+        最后用一句话收束：科学上网不是“把流量加密一下”。更准确地说，它是在识别、阻断和对抗之间不断演化的系统工程。GFW 依赖明文信息、元数据、协议指纹、流量行为和主动探测来识别连接。代理协议则通过加密、隐藏目标、抗探测、伪装正常流量和控制 DNS 泄露来提高识别成本。最终目标不是绝对不可见，而是让中间设备无法低成本、高置信度地区分代理流量和正常流量。
+      </aside>
+    </section>
+
+    <section>
+      <h1>Q&A</h1>
+      <aside class="notes">
+        我的分享就到这里。欢迎大家从流量识别、通讯阻断、代理协议演进和客户端工具分工几个角度提问。如果问题涉及具体节点、配置或操作步骤，我会尽量把它抽象回网络模型和协议原理来讨论。
+      </aside>
+    </section>
+  </section>
+</body>
+
+<script type="module">
+  import Reveal from "reveal.js";
+  import Highlight from "reveal.js/plugin/highlight";
+  import Notes from "reveal.js/plugin/notes";
+
+  new Reveal({
+    hash: true,
+    hashOneBasedIndex: true,
+    navigationMode: "linear",
+    plugins: [Highlight, Notes],
+  }).initialize();
+</script>
